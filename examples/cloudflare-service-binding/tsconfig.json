@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "lib": ["esnext"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "esnext",
+    "types": ["@cloudflare/workers-types"]
+  },
+  "include": ["./backend.ts", "./frontend.ts", "./sst-env.d.ts"]
+}

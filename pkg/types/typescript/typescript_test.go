@@ -166,6 +166,99 @@ func TestGenerate(t *testing.T) {
 		assert.FileExists(t, filepath.Join(dir, "sst-env.d.ts"))
 		assert.FileExists(t, filepath.Join(sub, "sst-env.d.ts"))
 	})
+
+	t.Run("cloudflare service binding with handler metadata", func(t *testing.T) {
+		dir := setupProject(t, map[string]string{
+			"@cloudflare/workers-types": "^4.0.0",
+		})
+
+		links := common.Links{
+			"Backend": {
+				Properties: map[string]interface{}{},
+				Include: []common.LinkInclude{
+					{
+						Type: "cloudflare.binding",
+						Other: map[string]interface{}{
+							"binding": "serviceBindings",
+							"handler": "./backend.ts",
+						},
+					},
+				},
+			},
+		}
+
+		err := typescript.Generate(dir, links)
+		require.NoError(t, err)
+
+		content, err := os.ReadFile(filepath.Join(dir, "sst-env.d.ts"))
+		require.NoError(t, err)
+
+		out := string(content)
+		assert.Contains(t, out, `type __SSTIsAny<T> = 0 extends (1 & T) ? true : false;`)
+		assert.Contains(t, out, `type __SSTServiceEntrypoint<T> = T extends abstract new (...args: any[]) => infer Instance ? Instance : T;`)
+		assert.Contains(t, out, `type __SSTService<T> = __SSTIsAny<T> extends true ? cloudflare.Service : __SSTServiceEntrypoint<T> extends Rpc.WorkerEntrypointBranded ? cloudflare.Service<__SSTServiceEntrypoint<T>> : cloudflare.Service;`)
+		assert.Contains(t, out, `"Backend": __SSTService<typeof import("./backend").default>`)
+	})
+
+	t.Run("cloudflare service binding without handler metadata", func(t *testing.T) {
+		dir := setupProject(t, map[string]string{
+			"@cloudflare/workers-types": "^4.0.0",
+		})
+
+		links := common.Links{
+			"Backend": {
+				Properties: map[string]interface{}{},
+				Include: []common.LinkInclude{
+					{
+						Type: "cloudflare.binding",
+						Other: map[string]interface{}{
+							"binding": "serviceBindings",
+						},
+					},
+				},
+			},
+		}
+
+		err := typescript.Generate(dir, links)
+		require.NoError(t, err)
+
+		content, err := os.ReadFile(filepath.Join(dir, "sst-env.d.ts"))
+		require.NoError(t, err)
+
+		out := string(content)
+		assert.NotContains(t, out, `type __SSTService<`)
+		assert.Contains(t, out, `"Backend": cloudflare.Service`)
+	})
+
+	t.Run("cloudflare service binding handler export suffix", func(t *testing.T) {
+		dir := setupProject(t, map[string]string{
+			"@cloudflare/workers-types": "^4.0.0",
+		})
+
+		links := common.Links{
+			"Backend": {
+				Properties: map[string]interface{}{},
+				Include: []common.LinkInclude{
+					{
+						Type: "cloudflare.binding",
+						Other: map[string]interface{}{
+							"binding": "serviceBindings",
+							"handler": "./backend.handler",
+						},
+					},
+				},
+			},
+		}
+
+		err := typescript.Generate(dir, links)
+		require.NoError(t, err)
+
+		content, err := os.ReadFile(filepath.Join(dir, "sst-env.d.ts"))
+		require.NoError(t, err)
+
+		out := string(content)
+		assert.Contains(t, out, `"Backend": __SSTService<typeof import("./backend").default>`)
+	})
 }
 
 func indexOf(s, substr string) int {

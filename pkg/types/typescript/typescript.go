@@ -21,15 +21,38 @@ var mapping = map[string]string{
 	"serviceBindings":     "Service",
 }
 
+type cloudflareBinding struct {
+	typeName string
+	handler  string
+}
+
 func Generate(root string, links common.Links) error {
-	cloudflareBindings := map[string]string{}
+	cloudflareBindings := map[string]cloudflareBinding{}
 	for name, link := range links {
 		for _, include := range link.Include {
-			if include.Type == "cloudflare.binding" {
-				binding := include.Other["binding"].(string)
-				cloudflareBindings[name] = mapping[binding]
-				break
+			if include.Type != "cloudflare.binding" {
+				continue
 			}
+
+			binding, ok := include.Other["binding"].(string)
+			if !ok {
+				continue
+			}
+
+			typeName := mapping[binding]
+			if typeName == "" {
+				continue
+			}
+
+			cfBinding := cloudflareBinding{typeName: typeName}
+			if binding == "serviceBindings" {
+				if handler, ok := include.Other["handler"].(string); ok {
+					cfBinding.handler = handler
+				}
+			}
+
+			cloudflareBindings[name] = cfBinding
+			break
 		}
 	}
 
@@ -77,7 +100,7 @@ func Generate(root string, links common.Links) error {
 		if data.Dependencies["@cloudflare/workers-types"] != "" || data.DevDependencies["@cloudflare/workers-types"] != "" {
 			nonCloudflareLinks := map[string]interface{}{}
 			for name, link := range properties {
-				if cloudflareBindings[name] == "" {
+				if cloudflareBindings[name].typeName == "" {
 					nonCloudflareLinks[name] = link
 				}
 			}
@@ -86,12 +109,26 @@ func Generate(root string, links common.Links) error {
 			envFile.WriteString("  export interface Resource " + infer(nonCloudflareLinks, "  ") + "\n")
 			envFile.WriteString("}" + "\n")
 			bindings := map[string]interface{}{}
+			hasServiceTypeAlias := false
 			for name, link := range cloudflareBindings {
-				bindings[name] = literal{value: `cloudflare.` + link}
+				typeRef, usesServiceTypeAlias := inferCloudflareBindingType(
+					root,
+					filepath.Dir(envPath),
+					link,
+				)
+				if usesServiceTypeAlias {
+					hasServiceTypeAlias = true
+				}
+				bindings[name] = literal{value: typeRef}
 			}
 			if len(bindings) > 0 {
 				envFile.WriteString("// cloudflare \n")
 				envFile.WriteString("import * as cloudflare from \"@cloudflare/workers-types\";\n")
+				if hasServiceTypeAlias {
+					envFile.WriteString("type __SSTIsAny<T> = 0 extends (1 & T) ? true : false;\n")
+					envFile.WriteString("type __SSTServiceEntrypoint<T> = T extends abstract new (...args: any[]) => infer Instance ? Instance : T;\n")
+					envFile.WriteString("type __SSTService<T> = __SSTIsAny<T> extends true ? cloudflare.Service : __SSTServiceEntrypoint<T> extends Rpc.WorkerEntrypointBranded ? cloudflare.Service<__SSTServiceEntrypoint<T>> : cloudflare.Service;\n")
+				}
 				envFile.WriteString("declare module \"sst\" {\n")
 				envFile.WriteString("  export interface Resource " + infer(bindings, "  ") + "\n")
 				envFile.WriteString("}\n")
@@ -160,4 +197,62 @@ func infer(input map[string]interface{}, indentArgs ...string) string {
 	}
 	builder.WriteString(indent + "}")
 	return builder.String()
+}
+
+func inferCloudflareBindingType(root string, envDir string, binding cloudflareBinding) (string, bool) {
+	if binding.typeName != "Service" {
+		return `cloudflare.` + binding.typeName, false
+	}
+
+	importPath, ok := resolveServiceImportPath(root, envDir, binding.handler)
+	if !ok {
+		return "cloudflare.Service", false
+	}
+
+	return `__SSTService<typeof import("` + importPath + `").default>`, true
+}
+
+func resolveServiceImportPath(root string, envDir string, handler string) (string, bool) {
+	if handler == "" {
+		return "", false
+	}
+
+	resolved := handler
+	if !filepath.IsAbs(resolved) {
+		resolved = filepath.Join(root, handler)
+	}
+
+	rel, err := filepath.Rel(envDir, resolved)
+	if err != nil {
+		return "", false
+	}
+
+	cleanedRel := filepath.Clean(rel)
+	rel = filepath.ToSlash(cleanedRel)
+	rel = trimImportExtension(rel)
+	if rel == filepath.ToSlash(cleanedRel) {
+		ext := filepath.Ext(cleanedRel)
+		if ext != "" {
+			rel = strings.TrimSuffix(rel, ext)
+		}
+	}
+	if rel == "" || rel == "." {
+		return "", false
+	}
+
+	if !strings.HasPrefix(rel, ".") {
+		rel = "./" + rel
+	}
+
+	return rel, true
+}
+
+func trimImportExtension(input string) string {
+	for _, ext := range []string{".d.ts", ".mts", ".cts", ".tsx", ".ts", ".jsx", ".mjs", ".cjs", ".js"} {
+		if strings.HasSuffix(input, ext) {
+			return strings.TrimSuffix(input, ext)
+		}
+	}
+
+	return input
 }

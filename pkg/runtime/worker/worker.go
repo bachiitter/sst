@@ -55,9 +55,9 @@ func (w *Runtime) Build(ctx context.Context, input *runtime.BuildInput) (*runtim
 	json.Unmarshal(input.Properties, &properties)
 	build := properties.Build
 
-	abs, err := filepath.Abs(input.Handler)
-	if err != nil {
-		return nil, err
+	file, ok := w.getFile(input)
+	if !ok {
+		return nil, fmt.Errorf("Handler not found: %v", input.Handler)
 	}
 	target := filepath.Join(input.Out(), input.Handler)
 
@@ -92,8 +92,8 @@ func (w *Runtime) Build(ctx context.Context, input *runtime.BuildInput) (*runtim
       import { fromCloudflareEnv, wrapCloudflareHandler } from "sst"
       export * from "%s"
       export default wrapCloudflareHandler(handler)
-      `, abs, abs),
-			ResolveDir: filepath.Dir(abs),
+	      `, file, file),
+			ResolveDir: filepath.Dir(file),
 			Loader:     esbuild.LoaderTS,
 		},
 		NodePaths: append([]string{

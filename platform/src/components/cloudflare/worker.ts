@@ -290,6 +290,7 @@ export interface WorkerArgs {
  * ```
  */
 export class Worker extends Component implements Link.Linkable {
+  private handler: Input<string>;
   private script: cf.WorkersScript;
   private workerUrl: WorkerUrl;
   private workerPlacement?: WorkerPlacement;
@@ -299,6 +300,8 @@ export class Worker extends Component implements Link.Linkable {
     super(__pulumiType, name, args, opts);
 
     const parent = this;
+
+    this.handler = args.handler;
 
     const dev = normalizeDev();
     const urlEnabled = normalizeUrl();
@@ -654,17 +657,22 @@ export class Worker extends Component implements Link.Linkable {
    * @internal
    */
   getSSTLink() {
+    const serviceBinding = binding({
+      type: "serviceBindings",
+      properties: {
+        service: this.script.id,
+      },
+    });
+
     return {
       properties: {
         url: this.url,
       },
       include: [
-        binding({
-          type: "serviceBindings",
-          properties: {
-            service: this.script.id,
-          },
-        }),
+        {
+          ...serviceBinding,
+          handler: this.handler,
+        },
       ],
     };
   }
