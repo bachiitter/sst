@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { env } from 'node:process';
+import { unstable_getDevCompatibilityDate } from 'wrangler';
 
 type SstLink = {
   include?: SstLinkInclude[];
@@ -225,7 +226,11 @@ function applySstLink(config: WorkerConfig, name: string, link: SstLink) {
 }
 
 function getDefaultCompatibilityDate() {
-  return new Date().toISOString().slice(0, 10);
+  try {
+    return unstable_getDevCompatibilityDate();
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
 }
 
 function resolveMainPath(configPath: string, main: string) {

@@ -1,8 +1,11 @@
-import { env } from 'process';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import process, { env } from 'process';
 
 declare global {
   var $SST_REACT_ROUTER_CLOUDFLARE: Record<string, unknown> | undefined;
 }
+
+const bindingStorage = new AsyncLocalStorage<Record<string, unknown>>();
 
 export function setCloudflareBindings(input: Record<string, unknown>) {
   const bindings = getCloudflareBindings();
@@ -20,9 +23,16 @@ export function setCloudflareBindings(input: Record<string, unknown>) {
       bindings[key.slice('SST_RESOURCE_'.length)] = value;
     }
   }
+
+  bindingStorage.enterWith(bindings);
 }
 
 export function getCloudflareBinding(name: string) {
+  const currentBindings = bindingStorage.getStore();
+  if (currentBindings && name in currentBindings) {
+    return currentBindings[name];
+  }
+
   const bindings = getCloudflareBindings();
   if (name in bindings) {
     return bindings[name];
@@ -33,6 +43,21 @@ export function getCloudflareBinding(name: string) {
 
 export function getCloudflareBindings() {
   globalThis.$SST_REACT_ROUTER_CLOUDFLARE ??= {};
+
+  const processObject = globalThis.process ?? process;
+  const processBindings = (processObject as typeof process & {
+    $SST_REACT_ROUTER_CLOUDFLARE?: Record<string, unknown>;
+  }).$SST_REACT_ROUTER_CLOUDFLARE;
+
+  if (processBindings) {
+    globalThis.$SST_REACT_ROUTER_CLOUDFLARE = processBindings;
+    return processBindings;
+  }
+
+  (processObject as typeof process & {
+    $SST_REACT_ROUTER_CLOUDFLARE?: Record<string, unknown>;
+  }).$SST_REACT_ROUTER_CLOUDFLARE = globalThis.$SST_REACT_ROUTER_CLOUDFLARE;
+
   return globalThis.$SST_REACT_ROUTER_CLOUDFLARE;
 }
 

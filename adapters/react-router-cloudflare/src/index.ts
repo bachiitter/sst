@@ -1,9 +1,6 @@
 import { createRequestHandler } from 'react-router';
 import { env } from 'process';
-import { CONFIG_PATH, createConfig, writeConfig } from './config.js';
 import { setCloudflareBindings } from './resource-state.js';
-
-export { CONFIG_PATH, createConfig, writeConfig };
 
 export function getLoadContext(input: {
   context: {
@@ -26,6 +23,7 @@ export function worker(mode: string) {
 
   return {
     async fetch(request: Request, workerEnv: Record<string, unknown>, ctx: unknown) {
+      setCloudflareBindings(resolveBindings(workerEnv));
       return requestHandler(request, {
         cloudflare: { env: workerEnv, ctx },
       });

@@ -1,55 +1,40 @@
 import { cloudflare as cloudflarePlugin } from '@cloudflare/vite-plugin';
 import { cloudflareDevProxy } from '@react-router/dev/vite/cloudflare';
-import { CONFIG_PATH, getLoadContext } from './index.js';
-import { writeConfigSync } from './config.js';
+import { getLoadContext } from './index.js';
+import { CONFIG_PATH, writeConfigSync } from './config.js';
 import type { WriteConfigInput } from './config.js';
 
 export type CloudflareInput = WriteConfigInput;
 
-export function cloudflare(input: CloudflareInput = {}): any[] {
+export function cloudflare(input: CloudflareInput = {}): any {
+  const command = getCommand();
   const configPath = input.configPath ?? CONFIG_PATH;
 
-  return [
-    createConfigWriterPlugin({
-      ...input,
-      configPath,
-      includeLinks: true,
-    }, 'serve'),
-    createConfigWriterPlugin({
-      ...input,
-      configPath,
-      includeLinks: false,
-    }, 'build'),
-    withApply(
-      cloudflareDevProxy({
+  writeConfigSync({
+    compatibilityDate: input.compatibilityDate,
+    configPath,
+    includeLinks: command === 'serve',
+    main: input.main,
+    name: input.name,
+  });
+
+  return command === 'serve'
+    ? cloudflareDevProxy({
         configPath,
         getLoadContext,
-      }),
-      'serve',
-    ),
-    withApply(
-      cloudflarePlugin({
+      })
+    : cloudflarePlugin({
         configPath,
         viteEnvironment: { name: 'ssr' },
-      }),
-      'build',
-    ),
-  ];
+      });
 }
 
-function createConfigWriterPlugin(input: WriteConfigInput, apply: 'build' | 'serve') {
-  return {
-    apply,
-    config() {
-      writeConfigSync(input);
-    },
-    name: `sst-react-router-cloudflare:config:${apply}`,
-  };
-}
+function getCommand(): 'build' | 'serve' {
+  const args = new Set(process.argv.slice(2));
 
-function withApply(plugin: any, apply: 'build' | 'serve') {
-  return {
-    ...plugin,
-    apply,
-  };
+  if (args.has('dev') || args.has('serve')) {
+    return 'serve';
+  }
+
+  return 'build';
 }

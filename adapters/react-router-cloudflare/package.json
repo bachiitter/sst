@@ -16,10 +16,6 @@
       "types": "./dist/vite.d.ts"
     },
     "./resource": {
-      "production": {
-        "import": "./dist/resource.cloudflare.js",
-        "types": "./src/resource.d.ts"
-      },
       "import": "./dist/resource.node.js",
       "types": "./src/resource.d.ts"
     }
