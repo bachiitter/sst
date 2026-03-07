@@ -90,8 +90,25 @@ func CmdShell(c *cli.Cli) error {
 		if runtime.GOOS == "windows" && len(complete.Links) > 50 {
 			// Create a single JSON with all resources
 			allResources := make(map[string]any)
+			linkDefinitions := make(map[string]any)
 			for resource, value := range complete.Links {
 				allResources[resource] = value.Properties
+
+				include := make([]map[string]any, 0, len(value.Include))
+				for _, item := range value.Include {
+					entry := map[string]any{
+						"type": item.Type,
+					}
+					for key, value := range item.Other {
+						entry[key] = value
+					}
+					include = append(include, entry)
+				}
+
+				linkDefinitions[resource] = map[string]any{
+					"include":    include,
+					"properties": value.Properties,
+				}
 			}
 			allResources["App"] = map[string]string{
 				"name":  p.App().Name,
@@ -106,8 +123,15 @@ func CmdShell(c *cli.Cli) error {
 			// Set as single environment variable that the SDK can parse
 			resourcesEnv := fmt.Sprintf("SST_RESOURCES_JSON=%s", string(jsonData))
 			cmd.Env = append(cmd.Env, resourcesEnv)
+
+			linksData, err := json.Marshal(linkDefinitions)
+			if err != nil {
+				return err
+			}
+			cmd.Env = append(cmd.Env, fmt.Sprintf("SST_LINKS_JSON=%s", string(linksData)))
 		} else {
 			// Original approach: Add individual SST resource environment variables
+			linkDefinitions := map[string]any{}
 			for resource, value := range complete.Links {
 				jsonValue, err := json.Marshal(value.Properties)
 				if err != nil {
@@ -115,6 +139,29 @@ func CmdShell(c *cli.Cli) error {
 				}
 				envVar := fmt.Sprintf("SST_RESOURCE_%s=%s", resource, string(jsonValue))
 				cmd.Env = append(cmd.Env, envVar)
+
+				include := make([]map[string]any, 0, len(value.Include))
+				for _, item := range value.Include {
+					entry := map[string]any{
+						"type": item.Type,
+					}
+					for key, value := range item.Other {
+						entry[key] = value
+					}
+					include = append(include, entry)
+				}
+
+				linkDefinitions[resource] = map[string]any{
+					"include":    include,
+					"properties": value.Properties,
+				}
+			}
+			if len(linkDefinitions) > 0 {
+				jsonValue, err := json.Marshal(linkDefinitions)
+				if err != nil {
+					return err
+				}
+				cmd.Env = append(cmd.Env, fmt.Sprintf("SST_LINKS_JSON=%s", string(jsonValue)))
 			}
 			appEnv := fmt.Sprintf("SST_RESOURCE_App=%s", fmt.Sprintf(`{"name": "%s", "stage": "%s" }`, p.App().Name, p.App().Stage))
 			cmd.Env = append(cmd.Env, appEnv)

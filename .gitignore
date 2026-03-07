@@ -1,5 +1,8 @@
 .sst
 dist
+build
+.wrangler
+.react-router
 node_modules
 Pulumi.*.yaml
 Pulumi.yaml

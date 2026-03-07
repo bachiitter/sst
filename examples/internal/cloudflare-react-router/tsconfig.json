@@ -1,0 +1,33 @@
+{
+  "include": [
+    ".react-router/types/**/*",
+    "app/**/*",
+    "app/**/.client/**/*",
+    "app/**/.server/**/*",
+    "react-router.config.ts",
+    "sst-env.d.ts",
+    "vite.config.ts",
+    "workers/**/*"
+  ],
+  "exclude": [".sst", "build", "node_modules", "sst.config.ts"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "checkJs": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "paths": {
+      "~/*": ["./app/*"]
+    },
+    "resolveJsonModule": true,
+    "rootDirs": [".", "./.react-router/types"],
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2022",
+    "types": ["node", "vite/client"],
+    "verbatimModuleSyntax": true
+  }
+}

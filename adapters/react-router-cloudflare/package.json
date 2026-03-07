@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "sst-react-router-cloudflare",
+  "type": "module",
+  "sideEffects": false,
+  "version": "0.0.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./resource": {
+      "production": {
+        "import": "./dist/resource.cloudflare.js",
+        "types": "./src/resource.d.ts"
+      },
+      "import": "./dist/resource.node.js",
+      "types": "./src/resource.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "tsc"
+  },
+  "files": [
+    "dist",
+    "src/resource.d.ts"
+  ],
+  "peerDependencies": {
+    "react-router": "^7.0.0",
+    "sst": "*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260114.0",
+    "@tsconfig/node20": "20.1.4",
+    "@types/node": "22.10.0",
+    "sst": "file:../../sdk/js",
+    "typescript": "5.7.2"
+  }
+}

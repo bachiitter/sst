@@ -38,10 +38,32 @@ func (p *Project) EnvFor(ctx context.Context, complete *CompleteEvent, name stri
 		}
 	}
 	log.Info("dev", "links", dev.Links)
+	linkDefinitions := map[string]any{}
 	for _, resource := range dev.Links {
-		value := complete.Links[resource].Properties
+		link := complete.Links[resource]
+		value := link.Properties
 		jsonValue, _ := json.Marshal(value)
 		env["SST_RESOURCE_"+resource] = string(jsonValue)
+
+		include := make([]map[string]any, 0, len(link.Include))
+		for _, item := range link.Include {
+			entry := map[string]any{
+				"type": item.Type,
+			}
+			for key, value := range item.Other {
+				entry[key] = value
+			}
+			include = append(include, entry)
+		}
+
+		linkDefinitions[resource] = map[string]any{
+			"include":    include,
+			"properties": link.Properties,
+		}
+	}
+	if len(linkDefinitions) > 0 {
+		jsonValue, _ := json.Marshal(linkDefinitions)
+		env["SST_LINKS_JSON"] = string(jsonValue)
 	}
 	env["SST_RESOURCE_App"] = fmt.Sprintf(`{"name": "%s", "stage": "%s" }`, p.App().Name, p.App().Stage)
 	for key, value := range dev.Environment {

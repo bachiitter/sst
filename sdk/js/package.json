@@ -24,6 +24,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w",
+    "prepare": "tsc",
     "release": "./scripts/release.ts"
   },
   "devDependencies": {

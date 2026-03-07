@@ -1,6 +1,7 @@
 {
   "name": "sst",
   "workspaces": [
+    "adapters/react-router-cloudflare",
     "www",
     "platform",
     "sdk/js"
