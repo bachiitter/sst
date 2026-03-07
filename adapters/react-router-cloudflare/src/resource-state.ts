@@ -24,7 +24,20 @@ export function setCloudflareBindings(input: Record<string, unknown>) {
     }
   }
 
-  bindingStorage.enterWith(bindings);
+  return bindings;
+}
+
+export function runWithCloudflareBindings<T>(
+  input: Record<string, unknown>,
+  callback: () => T,
+) {
+  const bindings = setCloudflareBindings(input);
+
+  if (typeof bindingStorage.run === 'function') {
+    return bindingStorage.run(bindings, callback);
+  }
+
+  return callback();
 }
 
 export function getCloudflareBinding(name: string) {

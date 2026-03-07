@@ -1,6 +1,6 @@
 import { createRequestHandler } from 'react-router';
 import { env } from 'process';
-import { setCloudflareBindings } from './resource-state.js';
+import { runWithCloudflareBindings, setCloudflareBindings } from './resource-state.js';
 
 export function getLoadContext(input: {
   context: {
@@ -23,9 +23,10 @@ export function worker(mode: string) {
 
   return {
     async fetch(request: Request, workerEnv: Record<string, unknown>, ctx: unknown) {
-      setCloudflareBindings(resolveBindings(workerEnv));
-      return requestHandler(request, {
-        cloudflare: { env: workerEnv, ctx },
+      return runWithCloudflareBindings(resolveBindings(workerEnv), () => {
+        return requestHandler(request, {
+          cloudflare: { env: workerEnv, ctx },
+        });
       });
     },
   };
