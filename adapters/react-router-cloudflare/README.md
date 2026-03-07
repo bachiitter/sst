@@ -18,17 +18,18 @@ import { cloudflare } from 'sst-react-router-cloudflare/vite'
 import { defineConfig } from 'vite'
 import tsconfigPaths from 'vite-tsconfig-paths'
 
-export default defineConfig(({ command }) => ({
+export default defineConfig({
   plugins: [
-    cloudflare({
-      command,
-      compatibilityDate: '2025-04-04'
-    }),
+    cloudflare(),
     reactRouter(),
     tsconfigPaths({ projects: ['./tsconfig.json'] })
   ]
-}))
+})
 ```
+
+Pass options like `compatibilityDate`, `configPath`, `main`, and `name` if needed.
+
+`compatibilityDate` is optional. If you do not set it, the adapter writes today's date by default, following Cloudflare's recommendation to use a current compatibility date.
 
 ## Worker entry
 
@@ -52,6 +53,6 @@ const bucketName = Resource.MyBucket.name
 
 ## How it works
 
-The Vite plugin connects React Router to SST during local development and prepares the build for Cloudflare Workers.
+The Vite plugin wires React Router into SST for local development and Cloudflare builds.
 
 The worker helper and `Resource` API keep the same linked resource access pattern in both environments.
