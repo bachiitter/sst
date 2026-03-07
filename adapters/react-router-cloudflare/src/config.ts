@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { env } from 'node:process';
@@ -63,6 +63,19 @@ export async function writeConfig(input: WriteConfigInput = {}) {
 
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await fs.writeFile(filePath, JSON.stringify(config, null, 2));
+
+  return filePath;
+}
+
+export function writeConfigSync(input: WriteConfigInput = {}) {
+  const filePath = path.resolve(input.configPath ?? CONFIG_PATH);
+  const config = createConfig({
+    ...input,
+    configPath: filePath,
+  });
+
+  mkdirSync(path.dirname(filePath), { recursive: true });
+  writeFileSync(filePath, JSON.stringify(config, null, 2));
 
   return filePath;
 }

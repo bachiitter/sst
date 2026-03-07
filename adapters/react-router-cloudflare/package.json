@@ -11,6 +11,10 @@
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
+    "./vite": {
+      "import": "./dist/vite.js",
+      "types": "./dist/vite.d.ts"
+    },
     "./resource": {
       "production": {
         "import": "./dist/resource.cloudflare.js",
@@ -29,14 +33,22 @@
     "src/resource.d.ts"
   ],
   "peerDependencies": {
+    "@cloudflare/vite-plugin": "^1.0.0",
+    "@react-router/dev": "^7.0.0",
     "react-router": "^7.0.0",
-    "sst": "*"
+    "sst": "*",
+    "vite": "^7.0.0",
+    "wrangler": ">=4.0.0"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.13.7",
     "@cloudflare/workers-types": "^4.20260114.0",
+    "@react-router/dev": "7.12.0",
     "@tsconfig/node20": "20.1.4",
     "@types/node": "22.10.0",
     "sst": "file:../../sdk/js",
-    "typescript": "5.7.2"
+    "typescript": "5.7.2",
+    "vite": "^7.1.7",
+    "wrangler": "^4.40.2"
   }
 }

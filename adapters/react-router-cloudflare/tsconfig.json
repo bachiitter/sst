@@ -6,8 +6,8 @@
     "downlevelIteration": true,
     "isolatedModules": true,
     "lib": ["ES2022", "DOM"],
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "outDir": "dist",
     "preserveSymlinks": true,
     "strict": true
